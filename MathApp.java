@@ -1,123 +1,317 @@
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+
 import javax.swing.*;
 import java.awt.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
-// Main class to run the application
 public class MathApp {
     public static void main(String[] args) {
-        new Login();
+        SwingUtilities.invokeLater(() -> new Login());
     }
 }
 
-// Login class
 class Login extends JFrame {
-    private JButton studentButton, teacherButton;
+    private JTextField usernameField;
+    private JPasswordField passwordField;
 
     public Login() {
-        setTitle("Login");
-        setSize(300, 150);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        studentButton = new JButton("Student");
-        teacherButton = new JButton("Teacher");
-
-        studentButton.addActionListener(e -> {
-            new Student();
-            dispose();
-        });
-
-        teacherButton.addActionListener(e -> {
-            new Teacher();
-            dispose();
-        });
-
-        setLayout(new GridLayout(2, 1));
-        add(studentButton);
-        add(teacherButton);
-
-        setVisible(true);
-    }
-}
-
-// Student class
-class Student extends JFrame {
-    private JTextField answerField;
-    private JButton submitButton;
-    private JLabel questionLabel, feedbackLabel;
-    private int currentQuestion = 0;
-    private int correctAnswers = 0;
-    private String[] questions = {
-            "5 + 3 = ?",
-            "12 - 4 = ?",
-            "6 * 2 = ?"
-    };
-    private int[] answers = {8, 8, 12};
-
-    public Student() {
-        setTitle("Student");
-        setSize(400, 200);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
-        questionLabel = new JLabel(questions[currentQuestion]);
-        answerField = new JTextField();
-        submitButton = new JButton("Submit");
-        feedbackLabel = new JLabel();
-
-        submitButton.addActionListener(e -> {
-            int answer = Integer.parseInt(answerField.getText());
-            if (answer == answers[currentQuestion]) {
-                feedbackLabel.setText("Correct!");
-                correctAnswers++;
-            } else {
-                feedbackLabel.setText("Incorrect! The correct answer is " + answers[currentQuestion]);
-            }
-
-            currentQuestion++;
-            if (currentQuestion < questions.length) {
-                questionLabel.setText(questions[currentQuestion]);
-                answerField.setText("");
-            } else {
-                feedbackLabel.setText("Quiz finished! Correct answers: " + correctAnswers);
-                submitButton.setEnabled(false);
-            }
-        });
-
-        setLayout(new GridLayout(4, 1));
-        add(questionLabel);
-        add(answerField);
-        add(submitButton);
-        add(feedbackLabel);
-
-        setVisible(true);
-    }
-}
-
-// Teacher class
-class Teacher extends JFrame {
-    private JTextArea classListTextArea;
-    private Map<String, Integer> studentProgress;
-
-    public Teacher() {
-        setTitle("Teacher");
+        setTitle("Math App Login");
         setSize(400, 300);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        studentProgress = new HashMap<>();
-        studentProgress.put("Student A", 2);
-        studentProgress.put("Student B", 3);
-        studentProgress.put("Student C", 1);
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(3, 2));
 
-        classListTextArea = new JTextArea();
-        for (String student : studentProgress.keySet()) {
-            classListTextArea.append(student + ": " + studentProgress.get(student) + " correct answers\n");
+        JLabel usernameLabel = new JLabel("Username:");
+        usernameField = new JTextField();
+
+        JLabel passwordLabel = new JLabel("Password:");
+        passwordField = new JPasswordField();
+
+        JButton loginButton = new JButton("Login");
+        loginButton.addActionListener(this::login);
+
+        JButton registerButton = new JButton("Register");
+        registerButton.addActionListener(this::register);
+
+        panel.add(usernameLabel);
+        panel.add(usernameField);
+        panel.add(passwordLabel);
+        panel.add(passwordField);
+        panel.add(loginButton);
+        panel.add(registerButton);
+
+        add(panel);
+        setVisible(true);
+    }
+
+    private void login(ActionEvent e) {
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
+
+        if (Utility.verifyUser(username, password)) {
+            JOptionPane.showMessageDialog(this, "Login successful!");
+            new MainApp(username);
+            dispose();
+        } else {
+            JOptionPane.showMessageDialog(this, "Invalid username or password.");
+        }
+    }
+
+    private void register(ActionEvent e) {
+        String username = usernameField.getText();
+        String password = new String(passwordField.getPassword());
+
+        if (Utility.addUser(new User(username, password))) {
+            JOptionPane.showMessageDialog(this, "Registration successful!");
+        } else {
+            JOptionPane.showMessageDialog(this, "Username already exists.");
+        }
+    }
+}
+
+class MainApp extends JFrame {
+    private String username;
+
+    public MainApp(String username) {
+        this.username = username;
+        setTitle("Math App Main");
+        setSize(400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(3, 1));
+
+        JButton viewStudentsButton = new JButton("View Total Students");
+        viewStudentsButton.addActionListener(this::viewStudents);
+
+        JButton takeTestButton = new JButton("Take a Test");
+        takeTestButton.addActionListener(this::takeTest);
+
+        JButton viewProgressButton = new JButton("View Progress");
+        viewProgressButton.addActionListener(this::viewProgress);
+
+        panel.add(viewStudentsButton);
+        panel.add(takeTestButton);
+        panel.add(viewProgressButton);
+
+        add(panel);
+        setVisible(true);
+    }
+
+    private void viewStudents(ActionEvent e) {
+        int totalStudents = Utility.getTotalStudents();
+        JOptionPane.showMessageDialog(this, "Total number of students: " + totalStudents);
+    }
+
+    private void takeTest(ActionEvent e) {
+        new TestApp(username);
+    }
+
+    private void viewProgress(ActionEvent e) {
+        int progress = Utility.getProgress(username);
+        JOptionPane.showMessageDialog(this, "Your progress: " + progress + "%");
+    }
+}
+
+class TestApp extends JFrame {
+    private String username;
+    private int score;
+    private int questionCount;
+    private JLabel questionLabel;
+    private JTextField answerField;
+
+    public TestApp(String username) {
+        this.username = username;
+        this.score = 0;
+        this.questionCount = 0;
+
+        setTitle("Math Test");
+        setSize(400, 300);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLocationRelativeTo(null);
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(3, 1));
+
+        questionLabel = new JLabel();
+        answerField = new JTextField();
+
+        JButton submitButton = new JButton("Submit");
+        submitButton.addActionListener(this::submitAnswer);
+
+        panel.add(questionLabel);
+        panel.add(answerField);
+        panel.add(submitButton);
+
+        add(panel);
+        setVisible(true);
+
+        generateQuestion();
+    }
+
+    private void submitAnswer(ActionEvent e) {
+        int answer = Integer.parseInt(answerField.getText());
+        if (checkAnswer(answer)) {
+            score++;
+        }
+        questionCount++;
+        if (questionCount < 5) {
+            generateQuestion();
+        } else {
+            Utility.saveProgress(username, score * 20); // Save progress as percentage
+            JOptionPane.showMessageDialog(this, "Test finished! Your score: " + score + "/5");
+            dispose();
+        }
+    }
+
+    private void generateQuestion() {
+        Random rand = new Random();
+        int num1 = rand.nextInt(10) + 1;
+        int num2 = rand.nextInt(10) + 1;
+        questionLabel.setText("What is " + num1 + " + " + num2 + "?");
+        answerField.setText("");
+    }
+
+    private boolean checkAnswer(int answer) {
+        String question = questionLabel.getText();
+        String[] parts = question.split(" ");
+        int num1 = Integer.parseInt(parts[2]);
+        int num2 = Integer.parseInt(parts[4]);
+        return (num1 + num2) == answer;
+    }
+}
+
+class Utility {
+    private static final String FILE_NAME = "students.json";
+
+    public static boolean verifyUser(String username, String password) {
+        List<User> users = readUsers();
+        for (User user : users) {
+            if (user.getUsername().equals(username) && user.getPassword().equals(password)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean addUser(User user) {
+        List<User> users = readUsers();
+        for (User u : users) {
+            if (u.getUsername().equals(user.getUsername())) {
+                return false; // User already exists
+            }
+        }
+        users.add(user);
+        writeUsers(users);
+        return true;
+    }
+
+    public static List<User> readUsers() {
+        List<User> users = new ArrayList<>();
+        JSONParser parser = new JSONParser();
+
+        try (FileReader reader = new FileReader(FILE_NAME)) {
+            JSONArray userArray = (JSONArray) parser.parse(reader);
+
+            for (Object obj : userArray) {
+                JSONObject userObject = (JSONObject) obj;
+                String username = (String) userObject.get("username");
+                String password = (String) userObject.get("password");
+                int progress = ((Long) userObject.get("progress")).intValue();
+                users.add(new User(username, password, progress));
+            }
+        } catch (IOException | ParseException e) {
+            e.printStackTrace();
         }
 
-        add(new JScrollPane(classListTextArea));
+        return users;
+    }
 
-        setVisible(true);
+    public static void writeUsers(List<User> users) {
+        JSONArray userArray = new JSONArray();
+
+        for (User user : users) {
+            JSONObject userObject = new JSONObject();
+            userObject.put("username", user.getUsername());
+            userObject.put("password", user.getPassword());
+            userObject.put("progress", user.getProgress());
+            userArray.add(userObject);
+        }
+
+        try (FileWriter writer = new FileWriter(FILE_NAME)) {
+            writer.write(userArray.toJSONString());
+            writer.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static int getTotalStudents() {
+        return readUsers().size();
+    }
+
+    public static int getProgress(String username) {
+        List<User> users = readUsers();
+        for (User user : users) {
+            if (user.getUsername().equals(username)) {
+                return user.getProgress();
+            }
+        }
+        return 0;
+    }
+
+    public static void saveProgress(String username, int progress) {
+        List<User> users = readUsers();
+        for (User user : users) {
+            if (user.getUsername().equals(username)) {
+                user.setProgress(progress);
+            }
+        }
+        writeUsers(users);
+    }
+}
+
+class User {
+    private String username;
+    private String password;
+    private int progress;
+
+    public User(String username, String password) {
+        this.username = username;
+        this.password = password;
+        this.progress = 0;
+    }
+
+    public User(String username, String password, int progress) {
+        this.username = username;
+        this.password = password;
+        this.progress = progress;
+    }
+
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public int getProgress() {
+        return progress;
+    }
+
+    public void setProgress(int progress) {
+        this.progress = progress;
     }
 }
