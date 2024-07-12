@@ -1,0 +1,10 @@
+{
+    "students": [
+        {
+            "name": "Student A",
+            "grade": "Grade 1",
+            "quizzesTaken": 0,
+            "correctAnswers": 0
+        }
+    ]
+}
